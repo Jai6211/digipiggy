@@ -1,13 +1,14 @@
 -- DigiPiggy — Phase 2 Database Schema (MySQL 8.0+)
--- MVP-focused tables + optional future scope. Use at your own discretion in class.
--- Run this whole file in MySQL Workbench (or mysql CLI).
+-- Cleaned & runnable end-to-end
 
--- Create schema (database) if you want everything under a separate DB
-CREATE DATABASE IF NOT EXISTS digipiggy DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+DROP DATABASE IF EXISTS digipiggy;
+CREATE DATABASE digipiggy
+  DEFAULT CHARACTER SET utf8mb4
+  COLLATE utf8mb4_0900_ai_ci;
 USE digipiggy;
 
 -- 1) USERS & IDENTITY ---------------------------------------------------------
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE users (
   id INT PRIMARY KEY AUTO_INCREMENT,
   email VARCHAR(120) NOT NULL UNIQUE,
   phone VARCHAR(32) UNIQUE,
@@ -17,11 +18,11 @@ CREATE TABLE IF NOT EXISTS users (
   status ENUM('active','locked','deleted') DEFAULT 'active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS kyc_profiles (
+CREATE TABLE kyc_profiles (
   id INT PRIMARY KEY AUTO_INCREMENT,
-  user_id INT NOT NULL,
+  user_id INT NOT NULL UNIQUE,
   ssn_last4 CHAR(4),
   itin VARCHAR(20),
   gov_id_type ENUM('passport','license','state_id'),
@@ -29,18 +30,21 @@ CREATE TABLE IF NOT EXISTS kyc_profiles (
   verified_at DATETIME NULL,
   status ENUM('pending','manual_review','verified','rejected') DEFAULT 'pending',
   CONSTRAINT fk_kyc_user FOREIGN KEY (user_id) REFERENCES users(id)
-);
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS auth_providers (
+CREATE TABLE auth_providers (
   id INT PRIMARY KEY AUTO_INCREMENT,
   user_id INT NOT NULL,
   provider ENUM('email','google','apple') NOT NULL,
   provider_uid VARCHAR(191) NOT NULL UNIQUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_ap_user FOREIGN KEY (user_id) REFERENCES users(id)
-);
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_ap_user (user_id)
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS sessions (
+CREATE TABLE sessions (
   id INT PRIMARY KEY AUTO_INCREMENT,
   user_id INT NOT NULL,
   jwt_id VARCHAR(191) NOT NULL UNIQUE,
@@ -50,10 +54,13 @@ CREATE TABLE IF NOT EXISTS sessions (
   expires_at TIMESTAMP NULL,
   revoked_at TIMESTAMP NULL,
   CONSTRAINT fk_session_user FOREIGN KEY (user_id) REFERENCES users(id)
-);
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_sess_user (user_id, created_at)
+) ENGINE=InnoDB;
 
 -- 2) WALLETS, TRANSACTIONS & POTS --------------------------------------------
-CREATE TABLE IF NOT EXISTS wallet_accounts (
+-- Polymorphic account (owner can be user OR pot)
+CREATE TABLE wallet_accounts (
   id INT PRIMARY KEY AUTO_INCREMENT,
   owner_type ENUM('user','pot') NOT NULL,
   owner_id INT NOT NULL,
@@ -61,9 +68,9 @@ CREATE TABLE IF NOT EXISTS wallet_accounts (
   available_cents BIGINT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_wallet_owner (owner_type, owner_id)
-);
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS transactions (
+CREATE TABLE transactions (
   id INT PRIMARY KEY AUTO_INCREMENT,
   user_id INT NOT NULL,
   wallet_account_id INT NOT NULL,
@@ -74,61 +81,79 @@ CREATE TABLE IF NOT EXISTS transactions (
   memo VARCHAR(255),
   external_ref VARCHAR(128) UNIQUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_tx_user FOREIGN KEY (user_id) REFERENCES users(id),
-  CONSTRAINT fk_tx_wallet FOREIGN KEY (wallet_account_id) REFERENCES wallet_accounts(id),
-  INDEX idx_tx_user_created (user_id, created_at)
-);
+  CONSTRAINT fk_tx_user FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_tx_wallet FOREIGN KEY (wallet_account_id) REFERENCES wallet_accounts(id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_tx_user_created (user_id, created_at),
+  INDEX idx_tx_wallet (wallet_account_id)
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS groups (
+CREATE TABLE groups (
   id INT PRIMARY KEY AUTO_INCREMENT,
   name VARCHAR(120) NOT NULL,
   owner_user_id INT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_group_owner FOREIGN KEY (owner_user_id) REFERENCES users(id)
-);
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS group_members (
+CREATE TABLE group_members (
   id INT PRIMARY KEY AUTO_INCREMENT,
   group_id INT NOT NULL,
   user_id INT NOT NULL,
   role ENUM('owner','admin','member') DEFAULT 'member',
   UNIQUE KEY uk_group_user (group_id, user_id),
-  CONSTRAINT fk_gm_group FOREIGN KEY (group_id) REFERENCES groups(id),
+  CONSTRAINT fk_gm_group FOREIGN KEY (group_id) REFERENCES groups(id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_gm_user FOREIGN KEY (user_id) REFERENCES users(id)
-);
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_gm_group (group_id),
+  INDEX idx_gm_user (user_id)
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS pots (
+CREATE TABLE pots (
   id INT PRIMARY KEY AUTO_INCREMENT,
-  group_id INT,
+  group_id INT NULL,
   name VARCHAR(120) NOT NULL,
   wallet_account_id INT NOT NULL UNIQUE,
   visibility ENUM('private','group','public') DEFAULT 'private',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_pot_group FOREIGN KEY (group_id) REFERENCES groups(id),
+  CONSTRAINT fk_pot_group FOREIGN KEY (group_id) REFERENCES groups(id)
+    ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT fk_pot_wallet FOREIGN KEY (wallet_account_id) REFERENCES wallet_accounts(id)
-);
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS pot_members (
+CREATE TABLE pot_members (
   id INT PRIMARY KEY AUTO_INCREMENT,
   pot_id INT NOT NULL,
   user_id INT NOT NULL,
   role ENUM('owner','contributor','viewer') DEFAULT 'contributor',
   UNIQUE KEY uk_pot_user (pot_id, user_id),
-  CONSTRAINT fk_pm_pot FOREIGN KEY (pot_id) REFERENCES pots(id),
+  CONSTRAINT fk_pm_pot FOREIGN KEY (pot_id) REFERENCES pots(id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_pm_user FOREIGN KEY (user_id) REFERENCES users(id)
-);
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_pm_pot (pot_id),
+  INDEX idx_pm_user (user_id)
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS pot_contributions (
+CREATE TABLE pot_contributions (
   id INT PRIMARY KEY AUTO_INCREMENT,
   pot_id INT NOT NULL,
   transaction_id INT NOT NULL,
   amount_cents BIGINT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_pc_pot FOREIGN KEY (pot_id) REFERENCES pots(id),
+  CONSTRAINT fk_pc_pot FOREIGN KEY (pot_id) REFERENCES pots(id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_pc_tx FOREIGN KEY (transaction_id) REFERENCES transactions(id)
-);
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_pc_pot (pot_id),
+  INDEX idx_pc_tx (transaction_id)
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS savings_goals (
+CREATE TABLE savings_goals (
   id INT PRIMARY KEY AUTO_INCREMENT,
   pot_id INT NOT NULL,
   target_cents BIGINT NOT NULL,
@@ -136,94 +161,116 @@ CREATE TABLE IF NOT EXISTS savings_goals (
   name VARCHAR(120),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_goal_pot FOREIGN KEY (pot_id) REFERENCES pots(id)
-);
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_goal_pot (pot_id)
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS goal_progress (
+CREATE TABLE goal_progress (
   id INT PRIMARY KEY AUTO_INCREMENT,
   goal_id INT NOT NULL,
   snapshot_at DATE NOT NULL,
   balance_cents BIGINT NOT NULL,
   UNIQUE KEY uk_goal_date (goal_id, snapshot_at),
   CONSTRAINT fk_gp_goal FOREIGN KEY (goal_id) REFERENCES savings_goals(id)
-);
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_gp_goal (goal_id)
+) ENGINE=InnoDB;
 
--- 3) MERCHANTS, RECEIPTS & CHANGE (for 5% commission) ------------------------
-CREATE TABLE IF NOT EXISTS merchants (
+-- 3) MERCHANTS, RECEIPTS & CHANGE --------------------------------------------
+CREATE TABLE merchants (
   id INT PRIMARY KEY AUTO_INCREMENT,
   name VARCHAR(120) NOT NULL UNIQUE,
   category VARCHAR(64),
   contact_email VARCHAR(120),
   status ENUM('active','inactive') DEFAULT 'active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS receipts (
+CREATE TABLE receipts (
   id INT PRIMARY KEY AUTO_INCREMENT,
   user_id INT NOT NULL,
-  merchant_id INT,
+  merchant_id INT NULL,
   total_cents BIGINT NOT NULL,
   paid_cents BIGINT NOT NULL,
   method ENUM('cash','card','upi','other') DEFAULT 'cash',
   purchased_at DATETIME,
   source ENUM('upload','api','manual') DEFAULT 'manual',
-  CONSTRAINT fk_receipt_user FOREIGN KEY (user_id) REFERENCES users(id),
+  CONSTRAINT fk_receipt_user FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_receipt_merchant FOREIGN KEY (merchant_id) REFERENCES merchants(id)
-);
+    ON DELETE SET NULL ON UPDATE CASCADE,
+  INDEX idx_receipt_user (user_id, purchased_at),
+  INDEX idx_receipt_merchant (merchant_id)
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS roundups (
+CREATE TABLE roundups (
   id INT PRIMARY KEY AUTO_INCREMENT,
   user_id INT NOT NULL,
-  receipt_id INT,
+  receipt_id INT NULL,
   purchase_cents BIGINT NOT NULL,
   roundup_cents INT NOT NULL,
   strategy ENUM('nearest_dollar','nearest_5','custom') DEFAULT 'nearest_dollar',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CHECK (roundup_cents >= 0 AND roundup_cents <= 99),
-  CONSTRAINT fk_roundup_user FOREIGN KEY (user_id) REFERENCES users(id),
+  CONSTRAINT fk_roundup_user FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_roundup_receipt FOREIGN KEY (receipt_id) REFERENCES receipts(id)
-);
+    ON DELETE SET NULL ON UPDATE CASCADE,
+  INDEX idx_roundup_user (user_id, created_at)
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS change_contributions (
+CREATE TABLE change_contributions (
   id INT PRIMARY KEY AUTO_INCREMENT,
-  user_id INT,
+  user_id INT NULL,
   merchant_id INT NOT NULL,
-  receipt_id INT,
+  receipt_id INT NULL,
   amount_cents BIGINT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_cc_user FOREIGN KEY (user_id) REFERENCES users(id),
-  CONSTRAINT fk_cc_merchant FOREIGN KEY (merchant_id) REFERENCES merchants(id),
+  CONSTRAINT fk_cc_user FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT fk_cc_merchant FOREIGN KEY (merchant_id) REFERENCES merchants(id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_cc_receipt FOREIGN KEY (receipt_id) REFERENCES receipts(id)
-);
+    ON DELETE SET NULL ON UPDATE CASCADE,
+  INDEX idx_cc_merchant (merchant_id, created_at)
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS merchant_commissions (
+CREATE TABLE merchant_commissions (
   id INT PRIMARY KEY AUTO_INCREMENT,
   merchant_id INT NOT NULL,
   contribution_id INT NOT NULL,
-  commission_rate_bps SMALLINT DEFAULT 500, -- 500 bps = 5%\n  commission_cents BIGINT NOT NULL,
+  commission_rate_bps SMALLINT DEFAULT 500, -- 500 bps = 5%
+  commission_cents BIGINT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_mc_merchant FOREIGN KEY (merchant_id) REFERENCES merchants(id),
+  CONSTRAINT fk_mc_merchant FOREIGN KEY (merchant_id) REFERENCES merchants(id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_mc_contribution FOREIGN KEY (contribution_id) REFERENCES change_contributions(id)
-);
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_mc_merchant (merchant_id),
+  UNIQUE KEY uk_mc_contrib (contribution_id)
+) ENGINE=InnoDB;
 
--- 4) NOTIFICATIONS & GAMIFICATION (lightweight) ------------------------------
-CREATE TABLE IF NOT EXISTS badges (
+-- 4) NOTIFICATIONS & GAMIFICATION --------------------------------------------
+CREATE TABLE badges (
   id INT PRIMARY KEY AUTO_INCREMENT,
   code VARCHAR(64) NOT NULL UNIQUE,
   name VARCHAR(120) NOT NULL,
   criteria_json JSON NOT NULL
-);
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS user_badges (
+CREATE TABLE user_badges (
   id INT PRIMARY KEY AUTO_INCREMENT,
   user_id INT NOT NULL,
   badge_id INT NOT NULL,
   awarded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uk_user_badge (user_id, badge_id),
-  CONSTRAINT fk_ub_user FOREIGN KEY (user_id) REFERENCES users(id),
+  CONSTRAINT fk_ub_user FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_ub_badge FOREIGN KEY (badge_id) REFERENCES badges(id)
-);
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS notification_settings (
+CREATE TABLE notification_settings (
   id INT PRIMARY KEY AUTO_INCREMENT,
   user_id INT NOT NULL,
   email_enabled BOOLEAN DEFAULT TRUE,
@@ -231,9 +278,11 @@ CREATE TABLE IF NOT EXISTS notification_settings (
   push_enabled BOOLEAN DEFAULT FALSE,
   quiet_hours_json JSON,
   CONSTRAINT fk_ns_user FOREIGN KEY (user_id) REFERENCES users(id)
-);
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  UNIQUE KEY uk_ns_user (user_id)
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS notifications (
+CREATE TABLE notifications (
   id INT PRIMARY KEY AUTO_INCREMENT,
   user_id INT NOT NULL,
   channel ENUM('email','sms','push','inapp') NOT NULL,
@@ -242,10 +291,12 @@ CREATE TABLE IF NOT EXISTS notifications (
   sent_at DATETIME,
   read_at DATETIME,
   CONSTRAINT fk_notif_user FOREIGN KEY (user_id) REFERENCES users(id)
-);
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_notif_user (user_id, sent_at)
+) ENGINE=InnoDB;
 
 -- 5) SECURITY / AUDIT ---------------------------------------------------------
-CREATE TABLE IF NOT EXISTS audit_logs (
+CREATE TABLE audit_logs (
   id INT PRIMARY KEY AUTO_INCREMENT,
   actor_user_id INT,
   action VARCHAR(80) NOT NULL,
@@ -255,18 +306,20 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   user_agent VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_audit_actor FOREIGN KEY (actor_user_id) REFERENCES users(id)
-);
+    ON DELETE SET NULL ON UPDATE CASCADE,
+  INDEX idx_audit_actor (actor_user_id, created_at)
+) ENGINE=InnoDB;
 
 -- 6) OPTIONAL FUTURE: INVESTMENTS --------------------------------------------
-CREATE TABLE IF NOT EXISTS investment_accounts (
+CREATE TABLE investment_accounts (
   id INT PRIMARY KEY AUTO_INCREMENT,
   owner_type ENUM('user','pot') NOT NULL,
   owner_id INT NOT NULL,
   status ENUM('active','restricted','closed') DEFAULT 'active',
   INDEX idx_ia_owner (owner_type, owner_id)
-);
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS orders (
+CREATE TABLE orders (
   id INT PRIMARY KEY AUTO_INCREMENT,
   investment_account_id INT NOT NULL,
   side ENUM('buy','sell') NOT NULL,
@@ -276,9 +329,11 @@ CREATE TABLE IF NOT EXISTS orders (
   status ENUM('new','filled','canceled','rejected') DEFAULT 'new',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_order_ia FOREIGN KEY (investment_account_id) REFERENCES investment_accounts(id)
-);
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_order_ia (investment_account_id, created_at)
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS portfolio_positions (
+CREATE TABLE portfolio_positions (
   id INT PRIMARY KEY AUTO_INCREMENT,
   investment_account_id INT NOT NULL,
   symbol VARCHAR(16) NOT NULL,
@@ -286,46 +341,58 @@ CREATE TABLE IF NOT EXISTS portfolio_positions (
   avg_price_cents BIGINT NOT NULL,
   UNIQUE KEY uk_pos (investment_account_id, symbol),
   CONSTRAINT fk_pos_ia FOREIGN KEY (investment_account_id) REFERENCES investment_accounts(id)
-);
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS prices (
+CREATE TABLE prices (
   id INT PRIMARY KEY AUTO_INCREMENT,
   symbol VARCHAR(16) NOT NULL,
   as_of DATETIME NOT NULL,
   price_cents BIGINT NOT NULL,
   UNIQUE KEY uk_price (symbol, as_of)
-);
+) ENGINE=InnoDB;
 
 -- 7) REVENUE SPLIT (70/25/5) --------------------------------------------------
-CREATE TABLE IF NOT EXISTS revenue_shares (
+CREATE TABLE revenue_shares (
   id INT PRIMARY KEY AUTO_INCREMENT,
   source_type ENUM('roundup','manual','merchant_change') NOT NULL,
   source_id INT NOT NULL,
-  user_id INT,
-  merchant_id INT,
+  user_id INT NULL,
+  merchant_id INT NULL,
   platform_cents BIGINT NOT NULL,
   user_cents BIGINT NOT NULL,
   merchant_cents BIGINT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_rs_user FOREIGN KEY (user_id) REFERENCES users(id),
+  CONSTRAINT fk_rs_user FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT fk_rs_merchant FOREIGN KEY (merchant_id) REFERENCES merchants(id)
-);
+    ON DELETE SET NULL ON UPDATE CASCADE,
+  INDEX idx_rs_source (source_type, source_id)
+) ENGINE=InnoDB;
 
 -- 8) MINIMAL SEED FOR DEMO ----------------------------------------------------
-INSERT INTO users (email,password_hash,full_name) VALUES ('demo@digipiggy.app','<hash>','Demo User')
+INSERT INTO users (email,password_hash,full_name)
+VALUES ('demo@digipiggy.app','<hash>','Demo User')
 ON DUPLICATE KEY UPDATE full_name=VALUES(full_name);
 
-INSERT INTO wallet_accounts (owner_type, owner_id) VALUES ('user', 1)
+-- Create a wallet account for the demo user (owner_type='user', owner_id = user.id=1)
+INSERT INTO wallet_accounts (owner_type, owner_id)
+VALUES ('user', 1)
 ON DUPLICATE KEY UPDATE owner_id=owner_id;
 
-INSERT INTO merchants (name) VALUES ('Local Grocer')
+INSERT INTO merchants (name, category, contact_email)
+VALUES ('Local Grocer','Grocery','grocer@example.com')
 ON DUPLICATE KEY UPDATE name=name;
 
-INSERT INTO receipts (user_id, merchant_id, total_cents, paid_cents, purchased_at)
-VALUES (1,1,1875,1900,NOW());
+-- A sample receipt for the user at the merchant
+INSERT INTO receipts (user_id, merchant_id, total_cents, paid_cents, purchased_at, method, source)
+VALUES (1, 1, 1875, 1900, NOW(), 'cash', 'manual');
 
-INSERT INTO roundups (user_id, receipt_id, purchase_cents, roundup_cents)
-VALUES (1,1,1875,25);
+-- Roundup of 25 cents from that purchase (18.75 -> 19.00)
+INSERT INTO roundups (user_id, receipt_id, purchase_cents, roundup_cents, strategy)
+VALUES (1, 1, 1875, 25, 'nearest_dollar');
 
+-- Record the roundup into the user's wallet account as a transaction
 INSERT INTO transactions (user_id, wallet_account_id, type, amount_cents, status, memo)
-VALUES (1,1,'roundup',25,'posted','Round‑up from receipt #1');
+VALUES (1, 1, 'roundup', 25, 'posted', 'Round-up from receipt #1');
+
