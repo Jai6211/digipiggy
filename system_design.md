@@ -2,7 +2,7 @@
 
 **Team:** Devendra Namani · Jagadishwar Reddy · Ahmed Azzam
 **Course:** CS-649 — System Analysis & Design
-**Repo:** *link-to-your-GitHub-repo-here*
+**Repo:** *(https://github.com/ProjFall2025/team5)*
 **Date:** October 13, 2025
 
 ---
