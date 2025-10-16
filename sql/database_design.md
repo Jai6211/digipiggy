@@ -82,7 +82,7 @@ This file satisfies the Phase‑2 requirements: feature→data mapping, entities
 
 ## 3) ER Diagram (Mermaid for GitHub)
 
-> Paste below is rendered by GitHub automatically. If your professor wants **images**, export PNG from Mermaid Live (https://mermaid.live) and upload `images/erd.png`.
+> 
 
 ```mermaid
 erDiagram
