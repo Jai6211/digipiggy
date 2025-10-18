@@ -334,8 +334,4 @@ Each member adds a short line in the commit message, e.g., `feat(docs): add RBAC
 
 ---
 
-> **How to Export Diagrams as Images:**
->
-> 1. Use a Mermaid previewer (VS Code “Markdown Preview Mermaid Support”) → right‑click → *Export PNG*.
-> 2. Save under `docs/images/` with names: `architecture.png`, `use_case.png`, `sequence_login.png`.
-> 3. In `system_design.md`, embed: `![System Architecture](docs/images/architecture.png)`.
+
