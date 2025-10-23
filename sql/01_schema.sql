@@ -5,7 +5,7 @@ DROP DATABASE IF EXISTS digipiggy;
 CREATE DATABASE digipiggy
   DEFAULT CHARACTER SET utf8mb4
   COLLATE utf8mb4_0900_ai_ci;
-USE digipiggy;
+USE digipiggy; 
 
 -- 1) USERS & IDENTITY ---------------------------------------------------------
 CREATE TABLE users (
