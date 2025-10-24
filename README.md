@@ -84,3 +84,30 @@ In the end, DigiPiggy’s goal is to encourage everyone, especially beginners, t
 
 ## Word Count Target  
 This README will be expanded to *1200–1500 words* with detailed descriptions for each section.  
+
+
+# DigiPiggy Prototype (Phase 4)
+
+## How to Run
+1. cd backend → node server.js
+2. cd frontend → npm run dev
+3. Open http://localhost:5173
+
+## Features Implemented
+✅ User Registration & Login (JWT)
+✅ Role-Based Access Control (Admin/User)
+✅ CRUD APIs for Users
+✅ MySQL database connected
+✅ React Frontend (Home, Login, Register, Dashboard)
+✅ Third-Party API: Weather (Open-Meteo)
+
+## Team Members
+- Jagadishwar Reddy Thellapally (100821210)
+- Devendra Namani
+- Ahmed Azzam
+
+
+## References
+- Express.js Docs
+- React Router Docs
+- Open-Meteo API

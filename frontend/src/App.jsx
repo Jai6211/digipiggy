@@ -1,27 +1,29 @@
-import { useEffect, useState } from "react";
+import { Routes, Route, Link } from "react-router-dom";
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Dashboard from "./pages/Dashboard";
+import Weather from "./pages/Weather";
 
-function App() {
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    fetch("http://localhost:4000/api/health")
-      .then((res) => res.json())
-      .then((json) => setData(json))
-      .catch((err) => console.error("Error fetching backend:", err));
-  }, []);
-
+export default function App() {
   return (
-    <div style={{ padding: "2rem", fontFamily: "Arial, sans-serif" }}>
-      <h1>🚀 DigiPiggy Frontend</h1>
-      <p>This page is connected to your Node.js backend.</p>
+    <div style={{ fontFamily: "system-ui", padding: "1rem" }}>
+      <nav style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+        <Link to="/">Home</Link>
+        <Link to="/register">Register</Link>
+        <Link to="/login">Login</Link>
+        <Link to="/dashboard">Dashboard</Link>
+        <Link to="/weather">Weather</Link>
+      </nav>
 
-      {data ? (
-        <pre>{JSON.stringify(data, null, 2)}</pre>
-      ) : (
-        <p>Loading from backend...</p>
-      )}
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/weather" element={<Weather />} />
+      </Routes>
     </div>
   );
 }
 
-export default App;
