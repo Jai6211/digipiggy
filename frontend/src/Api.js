@@ -1,100 +1,59 @@
-// src/Api.js
-const API_BASE = "http://localhost:4000";
+import axios from "axios";
 
-// Helper to get token
-function getToken() {
-  return localStorage.getItem("token");
-}
+// Axios client – talks to your Render backend
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:4000",
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
 
-// Generic GET with auth
-async function authGet(path) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
-    },
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || `GET ${path} failed`);
+// Attach JWT token automatically if present
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
-  return res.json();
-}
+  return config;
+});
 
-// Generic POST with auth
-async function authPost(path, body) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || `POST ${path} failed`);
-  }
-  return res.json();
-}
-
-// ---------------------------
-// AUTH HELPERS (optional)
-// ---------------------------
+// ----------- AUTH -----------
 
 export async function loginUser(email, password) {
-  const res = await fetch(`${API_BASE}/api/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || "Login failed");
-  }
-  if (data.token) {
-    localStorage.setItem("token", data.token);
-  }
-  return data;
+  const res = await api.post("/api/auth/login", { email, password });
+  return res.data; // { token, user }
 }
 
-export async function registerUser(full_name, email, password) {
-  const res = await fetch(`${API_BASE}/api/auth/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ full_name, email, password }),
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || "Registration failed");
-  }
-  return data;
+export async function registerUser(payload) {
+  // payload = { full_name, email, password, ... }
+  const res = await api.post("/api/auth/register", payload);
+  return res.data;
 }
 
-// ---------------------------
-// USER
-// ---------------------------
-
+// current logged-in user
 export async function fetchCurrentUser() {
-  return authGet("/api/users/me");
+  const res = await api.get("/api/users/me");
+  return res.data;
 }
 
-// ---------------------------
-// WALLET
-// ---------------------------
+// ----------- WALLET -----------
 
 export async function fetchMyWallet() {
-  return authGet("/api/wallet/me");
+  const res = await api.get("/api/wallet/me");
+  return res.data;
 }
 
 export async function depositToWallet(amount) {
-  return authPost("/api/wallet/deposit", { amount });
+  const res = await api.post("/api/wallet/deposit", { amount });
+  return res.data;
 }
 
-// ---------------------------
-// TRANSACTIONS
-// ---------------------------
+// ----------- TRANSACTIONS -----------
 
 export async function fetchMyTransactions() {
-  return authGet("/api/transactions/mine");
+  const res = await api.get("/api/transactions/mine");
+  return res.data;
 }
+
+// default export in case some files use `import api from "../Api"`
+export default api;

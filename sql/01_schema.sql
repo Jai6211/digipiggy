@@ -1,11 +1,9 @@
 -- DigiPiggy — Phase 2 Database Schema (MySQL 8.0+)
 -- Cleaned & runnable end-to-end
 
-DROP DATABASE IF EXISTS digipiggy;
-CREATE DATABASE digipiggy
-  DEFAULT CHARACTER SET utf8mb4
-  COLLATE utf8mb4_0900_ai_ci;
-USE digipiggy; 
+-- For Railway: use the existing database
+USE railway;
+
 
 -- 1) USERS & IDENTITY ---------------------------------------------------------
 CREATE TABLE users (
