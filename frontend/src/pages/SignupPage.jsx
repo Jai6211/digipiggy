@@ -1,37 +1,34 @@
 import { useState } from "react";
 import axios from "axios";
 
-export default function LoginPage() {
+export default function SignupPage() {
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleLogin = async (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-      const res = await axios.post("http://localhost:4000/api/auth/login", {
+      const res = await axios.post("http://localhost:4000/api/auth/register", {
+        full_name: fullName,
         email: email,
         password: password,
       });
 
-      // Save token for authenticated requests
-      if (res.data.token) {
-        localStorage.setItem("token", res.data.token);
-      }
-
-      // Go to dashboard after login
-      window.location.href = "/dashboard";
+      alert("Signup successful! Please login.");
+      window.location.href = "/login";
     } catch (err) {
-      setError(err.response?.data?.error || "Login failed");
+      setError(err.response?.data?.error || "Signup failed");
     }
   };
 
   return (
     <div style={{ display: "flex", justifyContent: "center", marginTop: "40px" }}>
       <form
-        onSubmit={handleLogin}
+        onSubmit={handleSignup}
         style={{
           width: "400px",
           background: "white",
@@ -40,7 +37,16 @@ export default function LoginPage() {
           boxShadow: "0 3px 10px rgba(0,0,0,0.1)",
         }}
       >
-        <h2>Login to DigiPiggy</h2>
+        <h2>Create your DigiPiggy account</h2>
+
+        <label>Full Name</label>
+        <input
+          type="text"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          required
+          style={{ width: "100%", padding: "10px", marginBottom: "15px" }}
+        />
 
         <label>Email</label>
         <input
@@ -75,7 +81,7 @@ export default function LoginPage() {
             border: "none",
           }}
         >
-          Login
+          Sign Up
         </button>
       </form>
     </div>

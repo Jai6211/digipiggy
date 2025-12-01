@@ -1,42 +1,172 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* ---------- DigiPiggy layout styles ---------- */
+
+.dp-page {
+  min-height: calc(100vh - 60px);
+  background: radial-gradient(circle at top left, #4f46e5 0, #020617 45%, #064e3b 100%);
+  padding: 32px 16px 40px;
+  display: flex;
+  justify-content: center;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.dp-hero {
+  max-width: 1120px;
+  width: 100%;
+  background: linear-gradient(135deg, #020617 0%, #020617 40%, #022c22 100%);
+  border-radius: 24px;
+  padding: 32px 32px 28px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.5);
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.1fr);
+  gap: 32px;
+  color: #e5e7eb;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+@media (max-width: 900px) {
+  .dp-hero {
+    grid-template-columns: 1fr;
+    padding: 24px 20px;
   }
 }
 
-.card {
-  padding: 2em;
+.dp-hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
-.read-the-docs {
-  color: #888;
+.dp-pill {
+  align-self: flex-start;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  color: #cbd5f5;
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.dp-hero-title {
+  font-size: 32px;
+  line-height: 1.25;
+  font-weight: 800;
+  color: #f9fafb;
+}
+
+.dp-hero-title span {
+  color: #a5b4fc;
+}
+
+.dp-hero-subtitle {
+  font-size: 14px;
+  color: #9ca3af;
+  max-width: 480px;
+}
+
+.dp-hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dp-btn-primary {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: #f9fafb;
+  box-shadow: 0 10px 25px rgba(79, 70, 229, 0.6);
+}
+
+.dp-btn-outline {
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid #4b5563;
+  color: #e5e7eb;
+}
+
+.dp-hero-note {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.dp-link-button {
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: none;
+  color: #a5b4fc;
+  cursor: pointer;
+  font-size: 12px;
+  text-decoration: underline;
+}
+
+/* ---------- Right side feature cards ---------- */
+
+.dp-hero-right {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dp-feature-card {
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 16px;
+  padding: 14px 14px 12px;
+  border: 1px solid rgba(55, 65, 81, 0.7);
+}
+
+.dp-feature-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.dp-feature-title-row h3 {
+  margin: 0;
+  font-size: 14px;
+  color: #e5e7eb;
+}
+
+.dp-feature-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(55, 65, 81, 0.8);
+  font-size: 14px;
+}
+
+.dp-feature-card p {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.dp-chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dp-chip {
+  border-radius: 999px;
+  border: 1px solid rgba(129, 140, 248, 0.7);
+  padding: 6px 11px;
+  font-size: 11px;
+  cursor: pointer;
+  background: rgba(15, 23, 42, 0.9);
+  color: #c7d2fe;
 }
