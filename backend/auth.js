@@ -11,12 +11,24 @@ const router = express.Router();
 const SECRET = "digipiggy_secret";
 
 // DB connection for auth
+const mysql = require("mysql2");
+
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "admin123",
-  database: "digipiggy",
+  host: process.env.DB_HOST || "localhost",
+  port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306,
+  user: process.env.DB_USER || "root",
+  password: process.env.DB_PASSWORD || "admin123",
+  database: process.env.DB_NAME || "digipiggy",
 });
+
+db.connect((err) => {
+  if (err) {
+    console.error("❌ Auth DB connection failed:", err);
+  } else {
+    console.log("✅ Auth DB connected");
+  }
+});
+
 
 db.connect((err) => {
   if (err) {
