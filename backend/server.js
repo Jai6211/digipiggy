@@ -1,5 +1,5 @@
 // ---------------------------
-// DigiPiggy Backend – CLEAN VERSION
+// DigiPiggy Backend – CLEAN VERSION (Railway DB)
 // ---------------------------
 
 const express = require("express");
@@ -18,10 +18,12 @@ app.use(express.json());
 const SECRET = "digipiggy_secret";
 
 // ---------------------------
-// MySQL Connection
+// MySQL Connection (MAIN DB)
 // ---------------------------
+
 const db = mysql.createConnection({
   host: process.env.DB_HOST || "localhost",
+  port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306,
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASSWORD || "admin123",
   database: process.env.DB_NAME || "digipiggy",
@@ -31,7 +33,7 @@ db.connect((err) => {
   if (err) {
     console.error("❌ Database connection failed:", err);
   } else {
-    console.log("✅ Connected to MySQL Database");
+    console.log("✅ Connected to MySQL Database (main)");
   }
 });
 
@@ -106,6 +108,7 @@ app.get("/api/users", (req, res) => {
 // ---------------------------
 // WALLET HELPERS
 // ---------------------------
+
 function getOrCreateWallet(dbConn, userId, cb) {
   dbConn.query(
     "SELECT * FROM wallet_accounts WHERE user_id = ?",
@@ -198,6 +201,7 @@ app.get("/api/transactions/mine", verifyToken, (req, res) => {
 // ---------------------------
 // START SERVER
 // ---------------------------
+// Render will give PORT in process.env.PORT
 const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {
