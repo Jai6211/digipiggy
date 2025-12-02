@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import { signup as signupApi } from "../Api";   // ✅ use shared API client
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState("");
@@ -12,21 +12,30 @@ export default function SignupPage() {
     setError("");
 
     try {
-      const res = await axios.post("http://localhost:4000/api/auth/register", {
+      // ✅ This automatically calls:
+      // https://digipiggy.onrender.com/api/auth/signup
+      await signupApi({
         full_name: fullName,
-        email: email,
-        password: password,
+        email,
+        password,
       });
 
       alert("Signup successful! Please login.");
       window.location.href = "/login";
     } catch (err) {
-      setError(err.response?.data?.error || "Signup failed");
+      console.error("Signup error:", err);
+      setError(err?.response?.data?.error || "Signup failed");
     }
   };
 
   return (
-    <div style={{ display: "flex", justifyContent: "center", marginTop: "40px" }}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        marginTop: "40px",
+      }}
+    >
       <form
         onSubmit={handleSignup}
         style={{

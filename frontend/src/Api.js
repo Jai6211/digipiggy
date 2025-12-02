@@ -1,59 +1,48 @@
+// frontend/src/Api.js
 import axios from "axios";
 
-// Axios client – talks to your Render backend
+// Make sure baseURL ALWAYS ends with /api
+const baseURL =
+  (import.meta.env.VITE_API_URL
+    ? import.meta.env.VITE_API_URL.replace(/\/$/, "") // remove trailing slash
+    : "http://localhost:4000") + "/api";
+
+console.log("📡 Using API baseURL:", baseURL);
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:4000",
-  headers: {
-    "Content-Type": "application/json",
-  },
+  baseURL,
+  withCredentials: true,
 });
 
-// Attach JWT token automatically if present
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// ----------- AUTH -----------
-
-export async function loginUser(email, password) {
-  const res = await api.post("/api/auth/login", { email, password });
-  return res.data; // { token, user }
-}
-
-export async function registerUser(payload) {
-  // payload = { full_name, email, password, ... }
-  const res = await api.post("/api/auth/register", payload);
+// ---------- AUTH ----------
+export async function signup(payload) {
+  const res = await api.post("/auth/register", payload);  // ✅ use /register
   return res.data;
 }
 
-// current logged-in user
+
+export async function login(payload) {
+  const res = await api.post("/auth/login", payload);
+  return res.data;
+}
+
+export async function logout() {
+  const res = await api.post("/auth/logout");
+  return res.data;
+}
+
 export async function fetchCurrentUser() {
-  const res = await api.get("/api/users/me");
+  const res = await api.get("/auth/me");
   return res.data;
 }
 
-// ----------- WALLET -----------
-
+// ---------- WALLET ----------
 export async function fetchMyWallet() {
-  const res = await api.get("/api/wallet/me");
+  const res = await api.get("/wallet/me");
   return res.data;
 }
 
-export async function depositToWallet(amount) {
-  const res = await api.post("/api/wallet/deposit", { amount });
+export async function depositToWallet(amountCents) {
+  const res = await api.post("/wallet/deposit", { amount_cents: amountCents });
   return res.data;
 }
-
-// ----------- TRANSACTIONS -----------
-
-export async function fetchMyTransactions() {
-  const res = await api.get("/api/transactions/mine");
-  return res.data;
-}
-
-// default export in case some files use `import api from "../Api"`
-export default api;
