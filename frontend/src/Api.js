@@ -16,10 +16,9 @@ const api = axios.create({
 
 // ---------- AUTH ----------
 export async function signup(payload) {
-  const res = await api.post("/auth/register", payload);  // ✅ use /register
+  const res = await api.post("/auth/signup", payload);
   return res.data;
 }
-
 
 export async function login(payload) {
   const res = await api.post("/auth/login", payload);
@@ -45,4 +44,30 @@ export async function fetchMyWallet() {
 export async function depositToWallet(amountCents) {
   const res = await api.post("/wallet/deposit", { amount_cents: amountCents });
   return res.data;
+}
+
+// ---------- TRANSACTIONS (demo data for now) ----------
+/**
+ * This is just to keep Vercel build happy and show some example data
+ * on the Transactions page. Later we can connect it to a real backend
+ * route if you want.
+ */
+export async function fetchMyTransactions() {
+  // Example mock data
+  return [
+    {
+      id: 1,
+      type: "roundup",
+      amount_cents: 75,
+      created_at: "2025-12-01 10:15:00",
+      memo: "Coffee round-up",
+    },
+    {
+      id: 2,
+      type: "deposit",
+      amount_cents: 500,
+      created_at: "2025-12-01 15:30:00",
+      memo: "Manual deposit",
+    },
+  ];
 }
