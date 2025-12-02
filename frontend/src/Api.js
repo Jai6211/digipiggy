@@ -9,9 +9,11 @@ const baseURL =
 
 console.log("📡 Using API baseURL:", baseURL);
 
+// IMPORTANT:
+// ❌ No withCredentials here – we are NOT using cookies.
+// This avoids the CORS error you saw.
 const api = axios.create({
   baseURL,
-  withCredentials: true,
 });
 
 // ---------- AUTH ----------

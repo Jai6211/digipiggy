@@ -1,3 +1,4 @@
+// backend/server.js
 // ---------------------------
 // DigiPiggy Backend – CLEAN VERSION (Railway DB)
 // ---------------------------
@@ -11,8 +12,23 @@ const authRoutes = require("./auth"); // ./auth.js
 
 const app = express();
 
-// IMPORTANT: these must be before all routes
-app.use(cors());
+// ---------------------------
+// MIDDLEWARE
+// ---------------------------
+
+// CORS – allow frontend + local dev
+app.use(
+  cors({
+    origin: [
+      "https://digipiggy.vercel.app",  // Vercel frontend
+      "http://localhost:5173",         // local Vite dev
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    // NOTE: no credentials: true here, and no cookies in frontend
+  })
+);
+
 app.use(express.json());
 
 const SECRET = "digipiggy_secret";
@@ -50,6 +66,7 @@ app.get("/api/health", (req, res) => {
 // ---------------------------
 // Auth routes (register + login)
 // ---------------------------
+// Expect auth.js to expose /signup and /login
 app.use("/api/auth", authRoutes);
 
 // ---------------------------
@@ -148,8 +165,10 @@ app.get("/api/wallet/me", verifyToken, (req, res) => {
 
 // deposit + create transaction
 app.post("/api/wallet/deposit", verifyToken, (req, res) => {
-  const { amount } = req.body;
-  const value = Number(amount);
+  // Accept either "amount" or "amount_cents"
+  const { amount, amount_cents } = req.body;
+  const value = Number(amount ?? amount_cents);
+
   if (!value || value <= 0)
     return res.status(400).json({ error: "Amount must be > 0" });
 
