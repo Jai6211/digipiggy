@@ -9,16 +9,15 @@ const baseURL =
 
 console.log("📡 Using API baseURL:", baseURL);
 
-// IMPORTANT:
-// ❌ No withCredentials here – we are NOT using cookies.
-// This avoids the CORS error you saw.
+// No withCredentials – we are not using cookies
 const api = axios.create({
   baseURL,
 });
 
 // ---------- AUTH ----------
 export async function signup(payload) {
-  const res = await api.post("/auth/signup", payload);
+  // ⬇️ IMPORTANT: use /auth/register (matches backend)
+  const res = await api.post("/auth/register", payload);
   return res.data;
 }
 
@@ -49,13 +48,7 @@ export async function depositToWallet(amountCents) {
 }
 
 // ---------- TRANSACTIONS (demo data for now) ----------
-/**
- * This is just to keep Vercel build happy and show some example data
- * on the Transactions page. Later we can connect it to a real backend
- * route if you want.
- */
 export async function fetchMyTransactions() {
-  // Example mock data
   return [
     {
       id: 1,
